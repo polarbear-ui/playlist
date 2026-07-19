@@ -253,7 +253,7 @@
         <button class="btn" id="expMp4">MP4로 저장</button>
         <span class="status" id="expStatus"></span>
       </div>
-      <p class="hint">투명 배경은 PNG에서만 됩니다. GIF와 MP4는 형식 자체가 투명을 담지 못해, 투명을 골라도 흰 배경으로 저장됩니다. PNG는 지금 보이는 순간의 화면 그대로 저장됩니다. GIF는 인코더를 CDN에서 불러오므로 인터넷 연결이 필요합니다. MP4는 브라우저 자체 기능으로 실제 재생 시간만큼 녹화하며, 지원하지 않는 브라우저에서는 자동으로 WebM으로 저장됩니다.</p>
+      <p class="hint">투명 배경은 PNG에서만 됩니다. GIF와 MP4는 형식 자체가 투명을 담지 못해, 투명을 골라도 흰 배경으로 저장됩니다.</p>
     </div>
   </div>
 
@@ -694,7 +694,18 @@ function drawScene(c,idx,t,forceOpaque){
     c.fillRect(0,0,W+M*2,h+M*2);
   }
   c.translate(M,M);
-  rr(c,0,0,W,h,38); c.fillStyle=T.paper2; c.fill();
+  rr(c,0,0,W,h,38);
+  if(M>0){                                  // 종이 위에 올려둔 듯한 그림자
+    c.save();
+    c.shadowColor=`rgba(${hex2rgb(T.text).join(",")},.28)`;
+    c.shadowBlur=M*1.1; c.shadowOffsetY=M*0.45;
+    c.fillStyle=T.paper2; c.fill();
+    c.shadowBlur=M*0.5; c.shadowOffsetY=M*0.16;
+    c.shadowColor=`rgba(${hex2rgb(T.text).join(",")},.18)`;
+    c.fill();
+    c.restore();
+  }
+  c.fillStyle=T.paper2; c.fill();
   c.textBaseline="middle";
   c.fillStyle=T.inkStrong; c.font=F(700,11);
   c.textAlign="left"; c.fillText("9:41",P+8,20);
