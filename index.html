@@ -117,7 +117,14 @@
   .sw i:nth-child(2){left:auto;width:40%}
   .colorpick{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:11px;padding:6px 8px;background:color-mix(in srgb,var(--card) 80%,#fff)}
   .colorpick input[type=color]{width:30px;height:30px;border:0;background:none;padding:0;cursor:pointer}
-  .colorpick span{font-size:11.5px;font-weight:700;color:var(--ink-soft)}
+  .colorpick .cpt{flex:1;min-width:0;display:block}
+  .colorpick .cpt b{display:block;font-size:10.5px;font-weight:700;color:var(--ink-soft);letter-spacing:.02em}
+  .colorpick .cpt input{width:100%;padding:1px 0 2px;border:0;border-bottom:1px solid var(--line);border-radius:0;
+    background:transparent;font-size:12.5px;font-weight:700;color:var(--ink-strong);
+    font-variant-numeric:tabular-nums;text-transform:lowercase}
+  .colorpick .cpt input:focus{outline:0;border-bottom-color:var(--accent)}
+  .colorpick .cpt input.bad{color:#b4685a;border-bottom-color:#b4685a}
+  @media (max-width:560px){.three{grid-template-columns:1fr}}
   .status{font-size:12px;color:var(--accent);font-weight:700}
 
   /* 구간 선택 */
@@ -143,11 +150,14 @@
       <h3>컬러 테마</h3>
       <div class="swatches" id="swatches"></div>
       <div class="three">
-        <div class="colorpick"><input type="color" id="cBg"><span>배경</span></div>
-        <div class="colorpick"><input type="color" id="cAccent"><span>포인트</span></div>
-        <div class="colorpick"><input type="color" id="cText"><span>텍스트</span></div>
+        <div class="colorpick"><input type="color" id="cBg" aria-label="배경색 고르기">
+          <span class="cpt"><b>배경</b><input type="text" id="hBg" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="배경 색상 코드"></span></div>
+        <div class="colorpick"><input type="color" id="cAccent" aria-label="포인트색 고르기">
+          <span class="cpt"><b>포인트</b><input type="text" id="hAccent" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="포인트 색상 코드"></span></div>
+        <div class="colorpick"><input type="color" id="cText" aria-label="텍스트색 고르기">
+          <span class="cpt"><b>텍스트</b><input type="text" id="hText" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="텍스트 색상 코드"></span></div>
       </div>
-      <p class="hint">세 가지 색에서 카드색, 경계선, 흐린 글씨색까지 자동으로 만들어집니다.</p>
+      <p class="hint">색상 코드를 직접 적어 넣어도 됩니다(<b>#8f9a4f</b> 또는 <b>8f9a4f</b>, 세 자리 <b>#abc</b>도 인식). 세 가지 색에서 카드색, 경계선, 흐린 글씨색까지 자동으로 만들어집니다.</p>
     </div>
 
     <div class="panel">
@@ -253,7 +263,7 @@
         <button class="btn" id="expMp4">MP4로 저장</button>
         <span class="status" id="expStatus"></span>
       </div>
-      <p class="hint">투명 배경은 PNG에서만 됩니다. GIF와 MP4는 형식 자체가 투명을 담지 못해, 투명을 골라도 흰 배경으로 저장됩니다.</p>
+      <p class="hint">투명 배경은 PNG에서만 됩니다. GIF와 MP4는 형식 자체가 투명을 담지 못해, 투명을 골라도 흰 배경으로 저장됩니다. PNG는 지금 보이는 순간의 화면 그대로 저장됩니다. GIF는 인코더를 CDN에서 불러오므로 인터넷 연결이 필요합니다. MP4는 브라우저 자체 기능으로 실제 재생 시간만큼 녹화하며, 지원하지 않는 브라우저에서는 자동으로 WebM으로 저장됩니다.</p>
     </div>
   </div>
 
@@ -307,13 +317,17 @@ function derive(){
     ink:mix(theme.text,theme.bg,.12), inkSoft:mix(theme.text,theme.bg,.42), inkStrong:theme.text,
     plist:dark?mix(theme.bg,"#ffffff",.06):mix(theme.bg,"#ffffff",.38)};
 }
-function applyTheme(){
+function applyTheme(keepTyping){
   T=derive(); const r=document.documentElement.style;
   Object.entries({'--bg':T.bg,'--accent':T.accent,'--text':T.text,'--paper2':T.paper2,'--card':T.card,
     '--line':T.line,'--ink':T.ink,'--ink-soft':T.inkSoft,'--ink-strong':T.inkStrong,'--plist':T.plist})
     .forEach(([k,v])=>r.setProperty(k,v));
   document.querySelectorAll('.sw').forEach((b,i)=>b.classList.toggle('on',PRESETS[i]&&PRESETS[i].bg===theme.bg&&PRESETS[i].accent===theme.accent));
   $("#cBg").value=theme.bg; $("#cAccent").value=theme.accent; $("#cText").value=theme.text;
+  [["hBg","bg"],["hAccent","accent"],["hText","text"]].forEach(([id,key])=>{
+    const el=$("#"+id);
+    if(el && !(keepTyping && document.activeElement===el)) el.value=theme[key];
+  });
 }
 
 /* ── 데이터 ───────────────────────── */
@@ -532,9 +546,22 @@ const swBox=$("#swatches");
 PRESETS.forEach(p=>{const b=document.createElement("button"); b.className="sw"; b.title=p.name;
   b.innerHTML=`<i style="background:${p.bg}"></i><i style="background:${p.accent}"></i>`;
   b.onclick=()=>{theme={...p}; applyTheme();}; swBox.appendChild(b);});
-$("#cBg").oninput=e=>{theme.bg=e.target.value; applyTheme();};
-$("#cAccent").oninput=e=>{theme.accent=e.target.value; applyTheme();};
-$("#cText").oninput=e=>{theme.text=e.target.value; applyTheme();};
+function normHex(v){
+  let t=String(v).trim().replace(/^#/,"").toLowerCase();
+  if(/^[0-9a-f]{3}$/.test(t)) t=[...t].map(c=>c+c).join("");
+  return /^[0-9a-f]{6}$/.test(t) ? "#"+t : null;
+}
+[["cBg","hBg","bg"],["cAccent","hAccent","accent"],["cText","hText","text"]].forEach(([pick,hexIn,key])=>{
+  $("#"+pick).oninput=e=>{ theme[key]=e.target.value; applyTheme(); };
+  const h=$("#"+hexIn);
+  h.oninput=e=>{
+    const v=normHex(e.target.value);
+    h.classList.toggle("bad", !v && e.target.value.trim()!=="");
+    if(v){ theme[key]=v; applyTheme(true); }
+  };
+  h.onblur=()=>{ h.classList.remove("bad"); h.value=theme[key]; };
+  h.onkeydown=e=>{ if(e.key==="Enter"){ h.blur(); } };
+});
 
 /* ── 재생 ─────────────────────────── */
 function tick(){
@@ -697,11 +724,11 @@ function drawScene(c,idx,t,forceOpaque){
   rr(c,0,0,W,h,38);
   if(M>0){                                  // 종이 위에 올려둔 듯한 그림자
     c.save();
-    c.shadowColor=`rgba(${hex2rgb(T.text).join(",")},.28)`;
+    c.shadowColor="rgba(0,0,0,.28)";
     c.shadowBlur=M*1.1; c.shadowOffsetY=M*0.45;
     c.fillStyle=T.paper2; c.fill();
     c.shadowBlur=M*0.5; c.shadowOffsetY=M*0.16;
-    c.shadowColor=`rgba(${hex2rgb(T.text).join(",")},.18)`;
+    c.shadowColor="rgba(0,0,0,.18)";
     c.fill();
     c.restore();
   }
