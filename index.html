@@ -66,6 +66,12 @@
 
   .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 20px;margin-bottom:16px}
   .panel>h3{margin:0 0 14px;font-size:13px;letter-spacing:.14em;font-weight:800;color:var(--accent)}
+  .panel.foldable>h3{margin:0;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+  .panel.foldable>h3::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+    transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s;flex:0 0 auto}
+  .panel.foldable.closed>h3::after{transform:rotate(-45deg) translate(-1px,1px)}
+  .panel.foldable .pbody{margin-top:14px}
+  .panel.foldable.closed .pbody{display:none}
   label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-soft);margin:0 0 5px}
   input[type=text],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:11px;
     background:color-mix(in srgb,var(--card) 80%,#fff);font:inherit;font-size:13.5px;color:var(--ink-strong)}
@@ -231,13 +237,23 @@
         <div class="field"><label for="fGifScale">영상 크기</label>
           <select id="fGifScale"><option value="0.75">작게</option><option value="1" selected>기본</option><option value="1.5">크게</option></select></div>
       </div>
+      <div class="two">
+        <div class="field"><label for="fBgMode">저장 배경</label>
+          <select id="fBgMode">
+            <option value="white" selected>흰 배경 + 여백</option>
+            <option value="theme">테마 배경색 + 여백</option>
+            <option value="transparent">투명 (PNG 전용)</option>
+          </select></div>
+        <div class="field"><label for="fMargin">여백</label>
+          <select id="fMargin"><option value="16">좁게</option><option value="28" selected>기본</option><option value="48">넓게</option></select></div>
+      </div>
       <div class="rowbtns">
         <button class="btn solid" id="expPng">PNG로 저장</button>
         <button class="btn" id="expGif">GIF로 저장</button>
         <button class="btn" id="expMp4">MP4로 저장</button>
         <span class="status" id="expStatus"></span>
       </div>
-      <p class="hint">PNG는 지금 보이는 순간의 화면 그대로 저장됩니다. GIF는 인코더를 CDN에서 불러오므로 인터넷 연결이 필요합니다. MP4는 브라우저 자체 기능으로 실제 재생 시간만큼 녹화하며, 지원하지 않는 브라우저에서는 자동으로 WebM으로 저장됩니다.</p>
+      <p class="hint">투명 배경은 PNG에서만 됩니다. GIF와 MP4는 형식 자체가 투명을 담지 못해, 투명을 골라도 흰 배경으로 저장됩니다. PNG는 지금 보이는 순간의 화면 그대로 저장됩니다. GIF는 인코더를 CDN에서 불러오므로 인터넷 연결이 필요합니다. MP4는 브라우저 자체 기능으로 실제 재생 시간만큼 녹화하며, 지원하지 않는 브라우저에서는 자동으로 WebM으로 저장됩니다.</p>
     </div>
   </div>
 
@@ -666,9 +682,18 @@ function ell(c,txt,max){ if(c.measureText(txt).width<=max) return txt;
   let t=txt; while(t.length&&c.measureText(t+"…").width>max) t=t.slice(0,-1); return t+"…"; }
 function icon(c,d,cx,cy,size,color){c.save(); c.translate(cx-size/2,cy-size/2); c.scale(size/24,size/24);
   c.fillStyle=color; c.fill(new Path2D(d)); c.restore();}
-function drawScene(c,idx,t){
-  const s=songs[idx], h=H(), ls=lines(s);
-  c.clearRect(0,0,W,h);
+function bgMode(){ const e=$("#fBgMode"); return e?e.value:"white"; }
+function MG(){ const e=$("#fMargin"); return bgMode()==="transparent"?0:(e?+e.value:28); }
+function drawScene(c,idx,t,forceOpaque){
+  const s=songs[idx], h=H(), ls=lines(s), M=MG();
+  c.save();
+  c.clearRect(0,0,W+M*2,h+M*2);
+  const mode=bgMode();
+  if(mode!=="transparent"||forceOpaque){
+    c.fillStyle = mode==="theme" ? T.bg : "#ffffff";
+    c.fillRect(0,0,W+M*2,h+M*2);
+  }
+  c.translate(M,M);
   rr(c,0,0,W,h,38); c.fillStyle=T.paper2; c.fill();
   c.textBaseline="middle";
   c.fillStyle=T.inkStrong; c.font=F(700,11);
@@ -734,10 +759,12 @@ function drawScene(c,idx,t){
     c.fillStyle=T.inkSoft; c.font=F(400,11.5); c.fillText(ell(c,so.artist||"미상",IW-110),tcx+30,tcy+11);
     c.font=F(400,13); c.textAlign="right"; c.fillText("\u22EF",W-P-14,tcy);
   });
+  c.restore();
 }
 function makeCanvas(k){
   const c=document.createElement("canvas");
-  c.width=Math.round(W*k); c.height=Math.round(H()*k);
+  const M=MG();
+  c.width=Math.round((W+M*2)*k); c.height=Math.round((H()+M*2)*k);
   const x=c.getContext("2d"); x.scale(k,k); return {c,x};
 }
 function dl(blob,name){const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name;
@@ -776,13 +803,13 @@ $("#expGif").onclick=async()=>{
       for(let f=0; f<n; f++) plan.push([i, a+f/fps]);
     });
     const {c,x}=makeCanvas(k);
-    const gif=new GIF({workers:2,quality:8,workerScript:worker,width:c.width,height:c.height,background:T.paper2});
+    const gif=new GIF({workers:2,quality:8,workerScript:worker,width:c.width,height:c.height,background:bgMode()==="theme"?T.bg:"#ffffff"});
     gif.on("progress",p=>st.textContent="인코딩 "+Math.round(p*100)+"%");
     gif.on("finished",b=>{ exporting=false; dl(b,(all?"playlist":(S().title||"playlist"))+".gif"); st.textContent="완료";
       btn.disabled=false; cur=keepCur; elapsed=keepT; refresh(); if(wasPlaying) setPlay(true);
       setTimeout(()=>st.textContent="",2500); });
     for(let f=0; f<plan.length; f++){
-      drawScene(x, plan[f][0], plan[f][1]);
+      drawScene(x, plan[f][0], plan[f][1], true);
       gif.addFrame(x,{copy:true,delay:Math.round(1000/fps)});
       if(f%5===0){ st.textContent="프레임 "+Math.round(f/plan.length*100)+"%"; await new Promise(r=>setTimeout(r)); }
     }
@@ -845,8 +872,7 @@ $("#expMp4").onclick=async()=>{
       const step=()=>{
         const r=(performance.now()-t0)/1000;
         const [i,t]=frameAt(segs,Math.min(r,total));
-        x.save(); x.fillStyle=T.bg; x.fillRect(0,0,W,H()); x.restore();
-        drawScene(x,i,t);
+        drawScene(x,i,t,true);
         st.textContent="녹화 "+Math.min(100,Math.round(r/total*100))+"%";
         if(r>=total){ done(); return; }
         requestAnimationFrame(step);
@@ -860,6 +886,17 @@ $("#expMp4").onclick=async()=>{
     btn.disabled=false; $("#expGif").disabled=false; if(wasPlaying) setPlay(true);
   }
 };
+
+/* ── 내보내기 패널만 접기 ─────────────── */
+[...document.querySelectorAll(".panel h3")].forEach(h=>{
+  if(!/내보내기/.test(h.textContent)) return;
+  const pn=h.parentElement;
+  const body=document.createElement("div"); body.className="pbody";
+  while(h.nextSibling) body.appendChild(h.nextSibling);
+  pn.appendChild(body);
+  pn.classList.add("foldable","closed");
+  h.addEventListener("click",()=>pn.classList.toggle("closed"));
+});
 
 applyTheme();
 elapsed=startT(S());
