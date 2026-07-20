@@ -50,7 +50,8 @@
   .track{flex:1;height:4px;border-radius:4px;background:var(--line);cursor:pointer;position:relative}
   .fill{height:100%;border-radius:4px;background:var(--accent);width:0}
   .fill::after{content:"";position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);left:var(--p,0%)}
-  .ctrl{display:flex;justify-content:center;align-items:center;gap:34px;padding:2px 0 4px;color:var(--accent)}
+  /* 수정 1: .ctrl 컨트롤러 아이콘 텍스트 색상(--text) 적용 */
+  .ctrl{display:flex;justify-content:center;align-items:center;gap:34px;padding:2px 0 4px;color:var(--text)}
   .ctrl button{background:none;border:0;color:inherit;cursor:pointer;padding:4px;line-height:0;border-radius:8px}
   .ctrl button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
   .plist{background:var(--plist);border-radius:var(--radius);padding:10px;display:flex;flex-direction:column;gap:4px;max-height:230px;overflow:auto}
@@ -73,7 +74,7 @@
   .panel.foldable .pbody{margin-top:14px}
   .panel.foldable.closed .pbody{display:none}
   label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-soft);margin:0 0 5px}
-  input[type=text],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:11px;
+  input[type=text],input[type=number],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:11px;
     background:color-mix(in srgb,var(--card) 80%,#fff);font:inherit;font-size:13.5px;color:var(--ink-strong)}
   textarea{min-height:140px;resize:vertical;line-height:1.6}
   input:focus,textarea:focus,select:focus{outline:2px solid color-mix(in srgb,var(--accent) 45%,transparent);border-color:transparent}
@@ -127,8 +128,8 @@
   @media (max-width:560px){.three{grid-template-columns:1fr}}
   .status{font-size:12px;color:var(--accent);font-weight:700}
 
-  /* 구간 선택 */
-  .lines{border:1px solid var(--line);border-radius:13px;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;
+  /* 수정 2: touch-action: pan-y 적용으로 모바일 세로 스크롤 허용 */
+  .lines{border:1px solid var(--line);border-radius:13px;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y;
     background:color-mix(in srgb,var(--card) 80%,#fff);max-height:260px;overflow-y:auto}
   .ln{display:flex;align-items:center;gap:10px;padding:7px 11px;font-size:13px;cursor:pointer;color:var(--ink-soft);
     border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
@@ -185,7 +186,12 @@
 
     <div class="panel">
       <h3>재생 구간</h3>
-      <p class="hint" style="margin:0 0 10px">아래에서 <b>드래그</b>해 재생할 가사 범위를 고르세요. 미리보기와 GIF 모두 이 구간만 재생한 뒤 다음 곡으로 넘어갑니다.</p>
+      <p class="hint" style="margin:0 0 10px">아래에서 <b>드래그</b>하거나 <b>줄 번호를 직접 입력</b>해 재생할 가사 범위를 고르세요. 미리보기와 GIF 모두 이 구간만 재생한 뒤 다음 곡으로 넘어갑니다.</p>
+      <!-- 수정 2: 줄 번호 직접 입력칸 추가 -->
+      <div class="two" style="margin-bottom:10px">
+        <div class="field" style="margin-bottom:0"><label for="fLineFrom">시작 줄 번호</label><input type="number" id="fLineFrom" min="1" placeholder="1"></div>
+        <div class="field" style="margin-bottom:0"><label for="fLineTo">끝 줄 번호</label><input type="number" id="fLineTo" min="1" placeholder="1"></div>
+      </div>
       <div class="lines" id="lines"></div>
       <div class="rowbtns" style="margin-top:10px">
         <button class="btn" id="rangeAll">전체 선택</button>
@@ -256,6 +262,15 @@
           </select></div>
         <div class="field"><label for="fMargin">여백</label>
           <select id="fMargin"><option value="16">좁게</option><option value="28" selected>기본</option><option value="48">넓게</option></select></div>
+      </div>
+      <!-- 수정 3: GIF 색상 화질 선택 옵션 추가 (최고 화질 기본 선택) -->
+      <div class="field">
+        <label for="fGifQuality">GIF 색상 화질 (썸네일 색감 보호)</label>
+        <select id="fGifQuality">
+          <option value="1" selected>최고 화질 (전수 픽셀 검사 · 색감 변질 없음)</option>
+          <option value="5">고화질 (빠른 인코딩)</option>
+          <option value="10">일반 화질 (기본)</option>
+        </select>
       </div>
       <div class="rowbtns">
         <button class="btn solid" id="expPng">PNG로 저장</button>
@@ -334,9 +349,9 @@ function applyTheme(keepTyping){
 const NEW=(t,a)=>({title:t,artist:a,lyrics:"",img:null,imgEl:null,fit:"cover",scale:100,x:0,y:0,blur:0,dim:0,
   gap:4, from:0, to:0, timeMode:"auto", timeL:"1:24", timeR:"-2:31", prog:40});
 let songs=[
-  Object.assign(NEW("Freedomless","Eden"),{lyrics:"자유는 아냐 흘리지 않는\n매듭으로 너와 난 서 있고\n바람이 불 때마다\n같은 쪽으로 흔들려\n놓을 수 없는 이 밤에\n네 이름만 자꾸 부르고\n대답이 없는 자리에\n나 혼자 서 있어",to:7}),
-  Object.assign(NEW("Set me free","Syndrome"),{lyrics:"닫힌 문을 두드려\n대답 없는 방 안에서\n숨을 고르고 다시\n너를 부르는 밤",to:3}),
-  Object.assign(NEW("Word","Liam"),{lyrics:"말이 되지 못한 것들이\n목 끝에 걸려 있어\n한 글자만 더 있으면\n다 전할 수 있을 텐데",to:3})
+  Object.assign(NEW("Freedomless","Eden"),{lyrics:"구원 같은 건\n믿고 싶은 사람이 붙잡는 말이지\n난 늘 정확한 쪽에만\n서 있었으니까\n자유는 아니야,\n풀리지 않는 매듭으로\n너와 난 서 있고\n바람이 불 때마다\n같은 쪽으로 흔들려",to:8}),
+  Object.assign(NEW("맞아, 난 네가 좋아","Pure"),{lyrics:"맞아, 난 네가 좋아\n생각보다 훨씬 많이\n이유는 없어 그냥 네가 오면\n하루가 좀 즐거워져\n맞아, 난 네가 좋아\n생각보다 훨씬 많이\n다정한 건 원래 내 성격이고\n설레는 건 아마 네 책임일 거야",to:7}),
+  Object.assign(NEW("AWAKE","Santa"),{lyrics:"서툰 말투에 네가 상처받을 때면\n미안함보다 먼저 겁이 났던 거야\n어차피 끝이 있을 거라\n바보같이, 혼자 정해두고서\n사랑해, 사랑해\n사랑이란 말이 내일이면 사라질까 봐\n목 끝까지 올라온 진심을\n몇 번이나 삼켰고",to:7})
 ];
 let cur=0, playing=false, elapsed=0, timer=null, exporting=false;
 const $=s=>document.querySelector(s);
@@ -355,7 +370,6 @@ const fullDur=s=>Math.max(1,lines(s).length)*gapOf(s);
 const lineAt=(s,t)=>Math.max(0,Math.min(lines(s).length-1,Math.floor(t/gapOf(s)+1e-6)));
 
 /* ── DOM 미리보기 ───────────────────── */
-// 이동 가능 범위(px): 잘려 나간 만큼 안에서만 움직이도록
 function panRange(s,w,h){
   const im=s.imgEl;
   if(!im||!im.width) return {mx:0,my:0};
@@ -440,9 +454,34 @@ function renderLines(){
   });
   const dur=((s.to-s.from+1)*gapOf(s)).toFixed(1);
   $("#rangeInfo").textContent=`${s.from+1}–${s.to+1}번 줄 · ${dur}초`;
+  updateLineInputs();
 }
-// 드래그 선택: 포인터 위치로 줄을 찾는다 (setPointerCapture 는 크롬에서
-// 다른 줄의 pointerenter 를 막기 때문에 쓰지 않는다)
+
+/* 수정 2: 줄 번호 입력칸 동기화 및 직접 입력 이벤트 처리 */
+function updateLineInputs(){
+  const s=S(), max=Math.max(1, lines(s).length);
+  const f=$("#fLineFrom"), t=$("#fLineTo");
+  if(f){ f.max=max; if(document.activeElement!==f) f.value=s.from+1; }
+  if(t){ t.max=max; if(document.activeElement!==t) t.value=s.to+1; }
+}
+function setLineFromInput(isStart, val){
+  const s=S(), max=Math.max(1, lines(s).length);
+  let v=parseInt(val, 10);
+  if(isNaN(v)) return;
+  v = Math.max(1, Math.min(max, v)) - 1;
+  if(isStart){
+    s.from = v;
+    if(s.from > s.to) s.to = s.from;
+  } else {
+    s.to = v;
+    if(s.to < s.from) s.from = s.to;
+  }
+  elapsed=startT(s);
+  renderLines(); syncLyricPos(); renderTime(); renderTabs();
+}
+$("#fLineFrom").oninput=e=>setLineFromInput(true, e.target.value);
+$("#fLineTo").oninput=e=>setLineFromInput(false, e.target.value);
+
 function lineIndexAt(x,y){
   const el=document.elementFromPoint(x,y);
   const row=el&&el.closest&&el.closest("#lines .ln");
@@ -454,16 +493,18 @@ function setRange(a,b){
   s.from=from; s.to=to; elapsed=startT(s);
   renderLines(); syncLyricPos(); renderTime(); renderTabs();
 }
+
+/* 수정 2: 모바일 터치 환경에서는 화면 스크롤을 막지 않고, 마우스나 펜일 때만 드래그 선택이 되도록 분기 */
 $("#lines").addEventListener("pointerdown",e=>{
   const i=lineIndexAt(e.clientX,e.clientY);
   if(i===null) return;
-  e.preventDefault();
+  if(e.pointerType!=="touch") e.preventDefault();
   dragAnchor=i;
   const s=S(); s.from=s.to=i; elapsed=startT(s);
   renderLines(); syncLyricPos(); renderTime(); renderTabs();
 });
 document.addEventListener("pointermove",e=>{
-  if(dragAnchor===null) return;
+  if(dragAnchor===null || e.pointerType==="touch") return;
   e.preventDefault();
   const i=lineIndexAt(e.clientX,e.clientY);
   if(i!==null) setRange(dragAnchor,i);
@@ -590,7 +631,6 @@ function rr(c,x,y,w,h,r){c.beginPath(); c.moveTo(x+r,y);
 let imgTok=1;
 const blurCache=new Map();
 
-/* ctx.filter 는 브라우저에 따라 무시되므로 직접 흐리게 만든다 (가우시안 근사 3중 박스블러) */
 function boxSizes(sigma,n){
   const ideal=Math.sqrt(12*sigma*sigma/n+1);
   let wl=Math.floor(ideal); if(wl%2===0) wl--;
@@ -634,7 +674,7 @@ function blurCanvas(cv,sigma){
   const c=cv.getContext("2d"), w=cv.width, h=cv.height;
   const img=c.getImageData(0,0,w,h), d=img.data;
   let a=new Float32Array(d.length), b=new Float32Array(d.length);
-  for(let i=0;i<d.length;i+=4){                 // 알파 미리 곱하기 (가장자리 검은 테 방지)
+  for(let i=0;i<d.length;i+=4){
     const al=d[i+3]/255;
     a[i]=d[i]*al; a[i+1]=d[i+1]*al; a[i+2]=d[i+2]*al; a[i+3]=d[i+3];
   }
@@ -652,7 +692,6 @@ function blurCanvas(cv,sigma){
 }
 function newCv(size){const cv=document.createElement("canvas"); cv.width=cv.height=size; return cv;}
 
-/* 가사 배경 한 장을 미리 만들어 캐시 (블러·확대·이동·채우기 방식 반영) */
 function artLayer(s,size){
   const key=[songs.indexOf(s),s.imgToken||0,s.fit,s.scale,s.x,s.y,s.blur,size].join("|");
   const hit=blurCache.get(key); if(hit) return hit;
@@ -663,7 +702,7 @@ function artLayer(s,size){
     g.addColorStop(0,mix(T.accent,"#ffffff",.3)); g.addColorStop(1,mix(T.accent,"#000000",.15));
     c.fillStyle=g; c.fillRect(0,0,size,size);
   }else{
-    if((s.fit||"cover")==="contain"){          // 여백용 흐린 배경
+    if((s.fit||"cover")==="contain"){
       const bk=Math.max(size/im.width,size/im.height)*1.15;
       const bw=im.width*bk, bh=im.height*bk;
       const bg=newCv(size), bc=bg.getContext("2d");
@@ -691,7 +730,6 @@ function drawArt(c,s,x,y,w,h){
   const size=Math.max(8,Math.round(w*k));
   c.drawImage(artLayer(s,size),x,y,w,h);
 }
-/* 썸네일 등 편집값 없이 원본 그대로 */
 function drawCover(c,s,x,y,w,h,raw){
   const im=s.imgEl;
   if(!im||!im.width){const g=c.createLinearGradient(x,y,x+w,y+h);
@@ -722,7 +760,7 @@ function drawScene(c,idx,t,forceOpaque){
   }
   c.translate(M,M);
   rr(c,0,0,W,h,38);
-  if(M>0){                                  // 종이 위에 올려둔 듯한 그림자
+  if(M>0){
     c.save();
     c.shadowColor="rgba(0,0,0,.28)";
     c.shadowBlur=M*1.1; c.shadowOffsetY=M*0.45;
@@ -775,13 +813,15 @@ function drawScene(c,idx,t,forceOpaque){
   c.textAlign="right"; c.fillText(L.r,W-P-6,by);
   const tx=P+36, tw=IW-72;
   rr(c,tx,by-2,tw,4,2); c.fillStyle=T.line; c.fill();
+  /* 수정 1: 재생 바는 포인트 색상(T.accent) 유지 */
   rr(c,tx,by-2,Math.max(4,tw*L.p),4,2); c.fillStyle=T.accent; c.fill();
   c.beginPath(); c.arc(tx+tw*L.p,by,4.5,0,7); c.fillStyle=T.accent; c.fill();
 
   const cy=AB+104;
-  icon(c,"M6 5h2v14H6zM20 5v14l-11-7z",W/2-52,cy,20,T.accent);
-  icon(c,(playing||exporting)?"M7 5h3.4v14H7zM13.6 5H17v14h-3.4z":"M8 5l12 7-12 7z",W/2,cy,26,T.accent);
-  icon(c,"M16 5h2v14h-2zM4 5l11 7-11 7z",W/2+52,cy,20,T.accent);
+  /* 수정 1: 일시정지/이전/다음 아이콘은 텍스트 색상(T.inkStrong = T.text) 적용 */
+  icon(c,"M6 5h2v14H6zM20 5v14l-11-7z",W/2-52,cy,20,T.inkStrong);
+  icon(c,(playing||exporting)?"M7 5h3.4v14H7zM13.6 5H17v14h-3.4z":"M8 5l12 7-12 7z",W/2,cy,26,T.inkStrong);
+  icon(c,"M16 5h2v14h-2zM4 5l11 7-11 7z",W/2+52,cy,20,T.inkStrong);
 
   const py=500;
   rr(c,P,py,IW,listH(),22); c.fillStyle=T.plist; c.fill();
@@ -841,7 +881,10 @@ $("#expGif").onclick=async()=>{
       for(let f=0; f<n; f++) plan.push([i, a+f/fps]);
     });
     const {c,x}=makeCanvas(k);
-    const gif=new GIF({workers:2,quality:8,workerScript:worker,width:c.width,height:c.height,background:bgMode()==="theme"?T.bg:"#ffffff"});
+    /* 수정 3: quality(샘플링 간격) 옵션을 1(100% 픽셀 검사)로 기본 적용하여 썸네일 색상 보존 */
+    const qVal = $("#fGifQuality") ? +$("#fGifQuality").value : 1;
+    const workersCnt = Math.max(2, Math.min(8, navigator.hardwareConcurrency || 4));
+    const gif=new GIF({workers:workersCnt, quality:qVal, workerScript:worker, width:c.width, height:c.height, background:bgMode()==="theme"?T.bg:"#ffffff"});
     gif.on("progress",p=>st.textContent="인코딩 "+Math.round(p*100)+"%");
     gif.on("finished",b=>{ exporting=false; dl(b,(all?"playlist":(S().title||"playlist"))+".gif"); st.textContent="완료";
       btn.disabled=false; cur=keepCur; elapsed=keepT; refresh(); if(wasPlaying) setPlay(true);
@@ -859,7 +902,6 @@ $("#expGif").onclick=async()=>{
     btn.disabled=false; if(wasPlaying) setPlay(true);
   }
 };
-
 
 /* ── MP4(또는 WebM) 저장 ───────────────── */
 function segments(){
@@ -891,7 +933,6 @@ $("#expMp4").onclick=async()=>{
     const fps=+$("#fFps").value, k=+$("#fGifScale").value;
     const {segs,total,all}=segments();
     const {c,x}=makeCanvas(k);
-    // 배경이 투명하면 영상에서 검게 나오므로 한 번 칠하고 시작
     const stream=c.captureStream(fps);
     const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6_000_000});
     const chunks=[];
