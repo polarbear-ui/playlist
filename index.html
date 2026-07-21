@@ -259,15 +259,13 @@
               <option value="theme">테마 배경색</option>
               <option value="transparent">투명 (PNG 전용)</option>
             </select></div>
-          <div class="field"><label for="fRatio">화면 비율</label>
+          <div class="field" style="margin-bottom:0"><label for="fRatio">화면 비율</label>
             <select id="fRatio">
               <option value="portrait" selected>세로로 길게</option>
               <option value="wide">가로로 길게</option>
               <option value="square">정사각형</option>
             </select></div>
         </div>
-        <div class="field" style="margin-bottom:0"><label for="fScope">재생 범위 (GIF·MP4)</label>
-          <select id="fScope"><option value="one">현재 곡의 선택 구간</option><option value="all">모든 곡의 선택 구간 이어서</option></select></div>
       </div>
 
       <div class="exgroup">
@@ -279,6 +277,8 @@
 
       <div class="exgroup">
         <div class="exhead">GIF <em>가벼운 반복 영상 · 무음</em></div>
+        <div class="field"><label for="fScopeGif">재생 범위</label>
+          <select id="fScopeGif" class="scopeSel"><option value="one">현재 곡의 선택 구간만</option><option value="all">모든 곡의 선택 구간 이어서</option></select></div>
         <div class="two">
           <div class="field"><label for="fGifFps">프레임/초</label>
             <select id="fGifFps"><option value="6">6</option><option value="10" selected>10</option><option value="14">14</option></select></div>
@@ -296,6 +296,8 @@
 
       <div class="exgroup">
         <div class="exhead">MP4 <em>고화질 영상 · 실제 길이만큼 녹화</em></div>
+        <div class="field"><label for="fScopeMp4">재생 범위</label>
+          <select id="fScopeMp4" class="scopeSel"><option value="one">현재 곡의 선택 구간만</option><option value="all">모든 곡의 선택 구간 이어서</option></select></div>
         <div class="two">
           <div class="field"><label for="fMp4Scale">해상도</label>
             <select id="fMp4Scale">
@@ -927,7 +929,7 @@ $("#expGif").onclick=async()=>{
   try{
     await document.fonts.ready;
     const worker=await ensureGif();
-    const fps=+$("#fGifFps").value, k=+$("#fGifScale").value, all=$("#fScope").value==="all";
+    const fps=+$("#fGifFps").value, k=+$("#fGifScale").value, all=$("#fScopeGif").value==="all";
     const idxs = all ? songs.map((_,i)=>i) : [cur];
     const plan=[];
     idxs.forEach(i=>{
@@ -959,7 +961,7 @@ $("#expGif").onclick=async()=>{
 
 /* ── MP4(또는 WebM) 저장 ───────────────── */
 function segments(){
-  const all=$("#fScope").value==="all";
+  const all=$("#fScopeMp4").value==="all";
   const idxs= all ? songs.map((_,i)=>i) : [cur];
   const segs=idxs.map(i=>({i,a:startT(songs[i]),b:endT(songs[i])}));
   const total=segs.reduce((n,g)=>n+(g.b-g.a),0);
@@ -1020,6 +1022,13 @@ $("#expMp4").onclick=async()=>{
     btn.disabled=false; $("#expGif").disabled=false; if(wasPlaying) setPlay(true);
   }
 };
+
+/* 재생 범위: GIF·MP4 두 칸을 같은 값으로 유지 */
+document.querySelectorAll(".scopeSel").forEach(sel=>{
+  sel.addEventListener("change",e=>{
+    document.querySelectorAll(".scopeSel").forEach(o=>{ o.value=e.target.value; });
+  });
+});
 
 /* ── 내보내기 패널만 접기 ─────────────── */
 [...document.querySelectorAll(".panel h3")].forEach(h=>{
